@@ -41,3 +41,7 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 
 ## 🔒 Privacy & Authentication
 This integration connects directly and securely to the official COROS European / US Training Hub APIs and MCP endpoint.
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)** - see the [LICENSE](LICENSE) file for details.
