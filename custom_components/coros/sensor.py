@@ -211,7 +211,6 @@ SENSOR_DESCRIPTIONS: tuple[CorosSensorEntityDescription, ...] = (
         key="fc_repos",
         name="COROS Fréquence Cardiaque au Repos",
         native_unit_of_measurement="bpm",
-        device_class=SensorDeviceClass.HEART_RATE,
         icon="mdi:heart-pulse",
         state_class=SensorStateClass.MEASUREMENT,
         entity_id_override="sensor.coros_fc_repos",

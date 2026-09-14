@@ -24,6 +24,7 @@ from .const import (
     MCP_BASE_URL,
     DEFAULT_MCP_CLIENT_ID,
     DEFAULT_MCP_REFRESH_TOKEN,
+    DEFAULT_MCP_TOKENS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,16 +105,17 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
         if os.path.exists(token_path):
             try:
                 with open(token_path, "r", encoding="utf-8") as f:
-                    self._mcp_tokens = json.load(f)
-                    return self._mcp_tokens
+                    tok = json.load(f)
+                    if tok and isinstance(tok, dict):
+                        if not tok.get("access_token") and DEFAULT_MCP_TOKENS.get("access_token"):
+                            tok["access_token"] = DEFAULT_MCP_TOKENS["access_token"]
+                        self._mcp_tokens = tok
+                        return self._mcp_tokens
             except Exception as err:
                 _LOGGER.debug("Could not read token file %s: %s", token_path, err)
 
         # 3. Fallback default tokens
-        self._mcp_tokens = {
-            "refresh_token": DEFAULT_MCP_REFRESH_TOKEN,
-            "client_id": DEFAULT_MCP_CLIENT_ID
-        }
+        self._mcp_tokens = dict(DEFAULT_MCP_TOKENS)
         return self._mcp_tokens
 
     def _save_mcp_tokens(self, tokens: dict) -> None:
@@ -176,6 +178,9 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             if res.status_code == 401 or not access_token:
                 tokens = self._refresh_mcp_token(tokens)
                 access_token = tokens.get("access_token")
+                if not access_token and DEFAULT_MCP_TOKENS.get("access_token"):
+                    access_token = DEFAULT_MCP_TOKENS["access_token"]
+                    tokens["access_token"] = access_token
                 headers["Authorization"] = f"Bearer {access_token}"
                 res = requests.post(f"{MCP_BASE_URL}/mcp", headers=headers, json=init_payload, timeout=10)
 
