@@ -1,0 +1,15 @@
+{
+  "domain": "coros",
+  "name": "COROS Training Hub & Health",
+  "codeowners": [
+    "@romainsapin"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/romainsapin/ha-coros",
+  "issue_tracker": "https://github.com/romainsapin/ha-coros/issues",
+  "requirements": [
+    "requests>=2.31.0"
+  ],
+  "version": "1.0.0",
+  "iot_class": "cloud_polling"
+}

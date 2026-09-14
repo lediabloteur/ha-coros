@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "COROS Training Hub",
+        "description": "Connectez votre compte COROS pour synchroniser vos entra\u00eenements et m\u00e9triques.",
+        "data": {
+          "email": "Email COROS",
+          "password": "Mot de passe COROS"
+        }
+      }
+    }
+  }
+}

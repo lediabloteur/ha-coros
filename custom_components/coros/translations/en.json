@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "COROS Training Hub",
+        "description": "Connect your COROS account to sync your workouts, health metrics and calendar.",
+        "data": {
+          "email": "COROS Email",
+          "password": "COROS Password"
+        }
+      }
+    }
+  }
+}
