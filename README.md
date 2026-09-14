@@ -1,7 +1,12 @@
+<p align="center">
+  <img src="icon.png" width="160" height="160" alt="COROS Home Assistant Icon" />
+</p>
+
 # COROS Training Hub & Health Integration for Home Assistant 🏃⌚
 
 [![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 [![Home Assistant](https://img.shields.io/badge/Home--Assistant-2024.1+-blue.svg)](https://www.home-assistant.io/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A comprehensive Home Assistant integration for **COROS** watches and Training Hub. It natively syncs your workouts, physiological health metrics (Sleep, HRV, Resting Heart Rate, Recovery), monthly realized volumes, and EvoLab race predictions.
 
