@@ -6,9 +6,22 @@
         "description": "Connect your COROS account to sync your workouts, health metrics and calendar.",
         "data": {
           "email": "COROS Email",
-          "password": "COROS Password"
+          "password": "COROS Password",
+          "mcp_token": "COROS MCP Token (optional)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "COROS Options",
+        "description": "COROS synchronization settings.",
+        "data": {
+          "scan_interval": "Update interval (minutes)",
+          "mcp_token": "COROS MCP Token (optional)"
         }
       }
     }
   }
-}
+}

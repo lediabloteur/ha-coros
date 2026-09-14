@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, time
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import homeassistant.util.dt as dt_util
@@ -26,6 +27,18 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
         self._attr_name = "Planning Entraînements COROS"
         self._attr_unique_id = f"{entry.entry_id}_calendar"
         self._attr_icon = "mdi:calendar-clock"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info for COROS Training Hub."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.user_id or self.coordinator.email)},
+            name="COROS Training Hub",
+            manufacturer="COROS",
+            model="Training Hub & Health",
+            entry_type=DeviceEntryType.SERVICE,
+            configuration_url="https://training.coros.com",
+        )
 
     def _get_events(self) -> list[CalendarEvent]:
         events = []

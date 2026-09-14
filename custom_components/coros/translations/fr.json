@@ -3,12 +3,25 @@
     "step": {
       "user": {
         "title": "COROS Training Hub",
-        "description": "Connectez votre compte COROS pour synchroniser vos entra\u00eenements et m\u00e9triques.",
+        "description": "Connectez votre compte COROS pour synchroniser vos entraînements et métriques.",
         "data": {
           "email": "Email COROS",
-          "password": "Mot de passe COROS"
+          "password": "Mot de passe COROS",
+          "mcp_token": "Token MCP COROS (optionnel)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options COROS",
+        "description": "Paramètres de synchronisation COROS.",
+        "data": {
+          "scan_interval": "Fréquence de rafraîchissement (minutes)",
+          "mcp_token": "Token MCP COROS (optionnel)"
         }
       }
     }
   }
-}
+}
