@@ -61,7 +61,9 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 | `sensor.coros_ppg_renfo_mois` | PPG & Renfo (Mois) | Monthly strength & conditioning sessions count, duration |
 | `sensor.coros_temps_total_mois` | Temps Total (Mois) | Total training time across all sports this month |
 | `sensor.coros_seances_realisees_mois`| Séances Réalisées (Mois) | Total completed workouts this month |
-| `sensor.coros_charge_entrainement_mois` | Charge Entraînement (Mois) | Total monthly training load (TL) |
+| `sensor.coros_charge_entrainement_mois` | Charge Entraînement (Mois) | Total monthly training load (TL) & weekly history |
+| `sensor.coros_temps_activite_semaine` | Temps d'Activité (Semaine) | Current week activity time (h), duration, distance, count & 8-week history |
+| `sensor.coros_charge_entrainement_semaine` | Charge d'Entraînement (Semaine) | Current week training load (TL) & 8-week history |
 | `sensor.coros_planning_entrainements` | Planning Entraînements | Next workout name & details, next 10 workouts attribute |
 | `calendar.planning_entrainements_coros` | Planning COROS | Full Home Assistant calendar with scheduled workouts |
 
