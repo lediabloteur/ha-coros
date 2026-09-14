@@ -1,6 +1,6 @@
 """Calendar platform for COROS Training Schedule."""
 import re
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta, time
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -31,6 +31,7 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
     def _get_events(self) -> list[CalendarEvent]:
         events = []
         programs = self.coordinator.data.get("schedule", [])
+        tz = dt_util.DEFAULT_TIME_ZONE
 
         for p in programs:
             name = p.get("name") or "Entraînement COROS"
@@ -46,9 +47,11 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
             if len(date_str) == 8:
                 try:
                     d = datetime.strptime(date_str, "%Y%m%d").date()
+                    start_dt = datetime.combine(d, time.min, tzinfo=tz)
+                    end_dt = datetime.combine(d + timedelta(days=1), time.min, tzinfo=tz)
                     events.append(CalendarEvent(
-                        start=d,
-                        end=d + timedelta(days=1),
+                        start=start_dt,
+                        end=end_dt,
                         summary=name,
                         description=overview,
                         location="Poitiers"
@@ -60,9 +63,9 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
 
     @property
     def event(self) -> CalendarEvent | None:
-        today = dt_util.now().date()
+        now = dt_util.now()
         for e in self._get_events():
-            if e.end >= today:
+            if e.end >= now:
                 return e
         return None
 
@@ -73,6 +76,4 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
         end_date: datetime,
     ) -> list[CalendarEvent]:
         events = self._get_events()
-        start_d = start_date.date()
-        end_d = end_date.date()
-        return [e for e in events if start_d <= e.end and e.start <= end_d]
+        return [e for e in events if start_date <= e.end and e.start <= end_date]
