@@ -140,7 +140,7 @@ class CorosUpcomingWorkoutsSensor(CorosBaseSensor):
                     month_num = dt.month
                     
                     if d_str == today_str:
-                        date_label = f"Aujourd’hui ({day_name} {day_num:02d}/{month_num:02d})"
+                        date_label = f"Aujourd'hui ({day_name} {day_num:02d}/{month_num:02d})"
                     elif d_str == (datetime.now() + timedelta(days=1)).strftime("%Y%m%d"):
                         date_label = f"Demain ({day_name} {day_num:02d}/{month_num:02d})"
                     else:
