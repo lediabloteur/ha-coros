@@ -1,4 +1,5 @@
 """Sensor platform for COROS."""
+from datetime import datetime, timedelta
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -22,6 +23,7 @@ async def async_setup_entry(
         CorosMonthTimeSensor(coordinator, entry),
         CorosMonthCountSensor(coordinator, entry),
         CorosTrainingLoadSensor(coordinator, entry),
+        CorosUpcomingWorkoutsSensor(coordinator, entry),
     ]
     async_add_entities(entities)
 
@@ -104,3 +106,60 @@ class CorosTrainingLoadSensor(CorosBaseSensor):
     @property
     def native_value(self):
         return self.coordinator.data.get("monthly_stats", {}).get("training_load", 0)
+
+class CorosUpcomingWorkoutsSensor(CorosBaseSensor):
+    """Sensor for upcoming COROS workouts."""
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "upcoming_workouts", "Planning Entraînements", "mdi:calendar-check")
+
+    @property
+    def native_value(self):
+        schedule = self.coordinator.data.get("schedule", [])
+        today_str = datetime.now().strftime("%Y%m%d")
+        upcoming = [s for s in schedule if str(s.get("date")) >= today_str]
+        if upcoming:
+            return upcoming[0].get("name", "Séance programmée")
+        return "Aucune séance programmée"
+
+    @property
+    def extra_state_attributes(self):
+        schedule = self.coordinator.data.get("schedule", [])
+        today_str = datetime.now().strftime("%Y%m%d")
+        
+        days_fr = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+        
+        formatted_workouts = []
+        for s in schedule:
+            d_str = str(s.get("date") or "")
+            if len(d_str) == 8:
+                try:
+                    dt = datetime.strptime(d_str, "%Y%m%d")
+                    day_name = days_fr[dt.weekday()]
+                    day_num = dt.day
+                    month_num = dt.month
+                    
+                    if d_str == today_str:
+                        date_label = f"Aujourd’hui ({day_name} {day_num:02d}/{month_num:02d})"
+                    elif d_str == (datetime.now() + timedelta(days=1)).strftime("%Y%m%d"):
+                        date_label = f"Demain ({day_name} {day_num:02d}/{month_num:02d})"
+                    else:
+                        date_label = f"{day_name} {day_num:02d}/{month_num:02d}"
+                        
+                    formatted_workouts.append({
+                        "date": date_label,
+                        "raw_date": d_str,
+                        "name": s.get("name"),
+                        "detail": s.get("overview"),
+                        "color": s.get("color", "#00b0ff"),
+                        "icon": s.get("icon", "mdi:run-fast"),
+                        "sport_type": s.get("sport_type", 1)
+                    })
+                except Exception:
+                    pass
+
+        upcoming_list = [w for w in formatted_workouts if w["raw_date"] >= today_str]
+        return {
+            "workouts": upcoming_list[:10],
+            "total_upcoming": len(upcoming_list)
+        }

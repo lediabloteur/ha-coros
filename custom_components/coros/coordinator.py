@@ -18,7 +18,6 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     API_BASE_URL,
-    MCP_BASE_URL
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ def md5(s: str) -> str:
     return hashlib.md5(s.encode("utf-8")).hexdigest()
 
 class CorosDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching COROS data from API and MCP."""
+    """Class to manage fetching COROS data from API."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize."""
@@ -137,16 +136,45 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "training_load": total_tl
         }
 
-        # 3. Fetch scheduled workouts
-        today_str = now.strftime("%Y%m%d")
+        # 3. Fetch scheduled workouts & map entities to programs
+        sched_start = now.strftime("%Y%m01")
+        sched_end = (now + timedelta(days=45)).strftime("%Y%m%d")
         sched_res = requests.get(
-            f"{API_BASE_URL}/training/schedule/query?startDate={today_str}&endDate={end_day}&supportRestExercise=1",
+            f"{API_BASE_URL}/training/schedule/query?startDate={sched_start}&endDate={sched_end}&supportRestExercise=1",
             headers=headers,
             timeout=15
         )
         if sched_res.status_code == 200:
-            programs = sched_res.json().get("data", {}).get("programs", [])
-            data["schedule"] = programs
+            s_data = sched_res.json().get("data", {})
+            entities = s_data.get("entities", [])
+            programs_by_id = {str(p.get("idInPlan") or p.get("id")): p for p in s_data.get("programs", [])}
+            
+            schedule_list = []
+            for e in entities:
+                happen_day = str(e.get("happenDay") or "")
+                plan_prog_id = str(e.get("idInPlan") or e.get("planProgramId") or e.get("programId") or "")
+                prog = programs_by_id.get(plan_prog_id, {})
+                
+                name = prog.get("name") or e.get("name") or "Entraînement COROS"
+                overview = prog.get("overview") or prog.get("description") or ""
+                sport_type = prog.get("sportType", 1)
+                
+                is_ppg = "ppg" in name.lower() or "renfo" in name.lower() or sport_type in [300, 301, 302, 303, 304, 305]
+                color = "#ab47bc" if is_ppg else "#00b0ff"
+                icon = "mdi:weight-lifter" if is_ppg else "mdi:run-fast"
+
+                schedule_list.append({
+                    "date": happen_day,
+                    "name": name,
+                    "overview": overview,
+                    "sport_type": sport_type,
+                    "color": color,
+                    "icon": icon,
+                    "training_load": prog.get("trainingLoad") or 0
+                })
+            
+            schedule_list.sort(key=lambda x: x["date"])
+            data["schedule"] = schedule_list
 
         return data
 

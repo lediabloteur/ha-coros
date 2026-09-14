@@ -1,5 +1,4 @@
 """Calendar platform for COROS Training Schedule."""
-import re
 from datetime import datetime, timedelta, time
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -30,19 +29,13 @@ class CorosCalendarEntity(CoordinatorEntity, CalendarEntity):
 
     def _get_events(self) -> list[CalendarEvent]:
         events = []
-        programs = self.coordinator.data.get("schedule", [])
+        schedule = self.coordinator.data.get("schedule", [])
         tz = dt_util.DEFAULT_TIME_ZONE
 
-        for p in programs:
-            name = p.get("name") or "Entraînement COROS"
-            overview = p.get("overview") or p.get("description") or ""
-
-            # Extract date (YYYYMMDD)
-            date_str = str(p.get("startDay") or p.get("date") or "")
-            if not date_str or len(date_str) != 8:
-                m = re.search(r'(\d{8})', name)
-                if m:
-                    date_str = m.group(1)
+        for s in schedule:
+            date_str = str(s.get("date") or "")
+            name = s.get("name") or "Entraînement COROS"
+            overview = s.get("overview") or ""
 
             if len(date_str) == 8:
                 try:
