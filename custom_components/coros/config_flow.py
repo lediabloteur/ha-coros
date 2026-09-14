@@ -6,7 +6,14 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import (
+    DOMAIN,
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    CONF_MCP_TOKEN,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +31,7 @@ class CorosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required(CONF_EMAIL): str,
             vol.Required(CONF_PASSWORD): str,
+            vol.Optional(CONF_MCP_TOKEN): str,
         })
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
@@ -42,8 +50,10 @@ class CorosOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        current_mcp = self.config_entry.options.get(CONF_MCP_TOKEN, "")
         schema = vol.Schema({
-            vol.Optional(CONF_SCAN_INTERVAL, default=current): cv.positive_int,
+            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): cv.positive_int,
+            vol.Optional(CONF_MCP_TOKEN, default=current_mcp): str,
         })
         return self.async_show_form(step_id="init", data_schema=schema)
