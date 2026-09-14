@@ -355,6 +355,7 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
         """Fetch all data synchronously in an executor thread."""
         data = {
             "monthly_stats": {},
+            "weekly_stats": {},
             "schedule": [],
             "fitness": {},
             "training_status": {},
@@ -384,9 +385,12 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "yfheader": json.dumps({"userId": user_id})
         }
 
-        # 2. Fetch current month activities
+        # 2. Fetch activities (last 70 days for weekly and monthly stats)
         now = datetime.now()
-        start_day = now.strftime("%Y%m01")
+        current_month_prefix = now.strftime("%Y%m")
+        current_iso_year, current_iso_week, _ = now.isocalendar()
+
+        start_day = (now - timedelta(days=70)).strftime("%Y%m%d")
         end_day = (now.replace(day=28) + timedelta(days=4)).strftime("%Y%m%d")
 
         acts_res = requests.get(
@@ -406,27 +410,75 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
         ppg_cnt = 0
         total_tl = 0
 
+        # Weekly buckets (last 8 weeks up to current week)
+        months_fr = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"]
+        weeks_dict = {}
+        for i in range(7, -1, -1):
+            ref_date = now - timedelta(weeks=i)
+            y, w, _ = ref_date.isocalendar()
+            key = f"{y}-W{w:02d}"
+            mon = ref_date - timedelta(days=ref_date.weekday())
+            sun = mon + timedelta(days=6)
+            if mon.month == sun.month:
+                label_range = f"{mon.day} - {sun.day} {months_fr[mon.month]}"
+            else:
+                label_range = f"{mon.day} {months_fr[mon.month]} - {sun.day} {months_fr[sun.month]}"
+
+            weeks_dict[key] = {
+                "key": key,
+                "week_label": f"S{w:02d}",
+                "week_num": w,
+                "year": y,
+                "date_range": label_range,
+                "start_date": mon.strftime("%Y-%m-%d"),
+                "end_date": sun.strftime("%Y-%m-%d"),
+                "start_timestamp": int(mon.timestamp() * 1000),
+                "total_seconds": 0,
+                "total_hours": 0.0,
+                "training_load": 0,
+                "distance_km": 0.0,
+                "count": 0,
+                "is_current": (y == current_iso_year and w == current_iso_week),
+            }
+
         if acts_res.status_code == 200:
             acts = acts_res.json().get("data", {}).get("dataList", [])
             for a in acts:
+                d_str = str(a.get("date") or "")
                 st = a.get("sportType") or a.get("mode")
                 dist = (a.get("distance") or 0) / 1000.0
                 sec = a.get("totalTime") or 0
                 tl = a.get("trainingLoad") or 0
                 name = (a.get("name") or "").lower()
 
-                if st in [100, 101, 102, 103] or any(k in name for k in ["course", "cap", "trail"]):
-                    running_km += dist
-                    running_sec += sec
-                    running_cnt += 1
-                elif st in [200, 201, 202, 203, 204] or any(k in name for k in ["gravel", "vélo", "vtt"]):
-                    bike_km += dist
-                    bike_sec += sec
-                    bike_cnt += 1
-                elif st in [300, 301, 302, 303, 304, 305] or any(k in name for k in ["ppg", "renfo", "musculation"]):
-                    ppg_sec += sec
-                    ppg_cnt += 1
-                total_tl += tl
+                # 2.a Monthly stats (current month only)
+                if d_str.startswith(current_month_prefix):
+                    if st in [100, 101, 102, 103] or any(k in name for k in ["course", "cap", "trail"]):
+                        running_km += dist
+                        running_sec += sec
+                        running_cnt += 1
+                    elif st in [200, 201, 202, 203, 204] or any(k in name for k in ["gravel", "vélo", "vtt"]):
+                        bike_km += dist
+                        bike_sec += sec
+                        bike_cnt += 1
+                    elif st in [300, 301, 302, 303, 304, 305] or any(k in name for k in ["ppg", "renfo", "musculation"]):
+                        ppg_sec += sec
+                        ppg_cnt += 1
+                    total_tl += tl
+
+                # 2.b Weekly aggregation
+                if len(d_str) == 8:
+                    try:
+                        act_dt = datetime.strptime(d_str, "%Y%m%d")
+                        act_y, act_w, _ = act_dt.isocalendar()
+                        w_key = f"{act_y}-W{act_w:02d}"
+                        if w_key in weeks_dict:
+                            weeks_dict[w_key]["total_seconds"] += sec
+                            weeks_dict[w_key]["training_load"] += tl
+                            weeks_dict[w_key]["distance_km"] += dist
+                            weeks_dict[w_key]["count"] += 1
+                    except Exception:
+                        pass
 
         def format_dur(seconds):
             h = seconds // 3600
@@ -452,6 +504,43 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "total_time_str": f"{total_sec // 3600}h {(total_sec % 3600) // 60:02d}",
             "total_seconds": total_sec,
             "training_load": total_tl
+        }
+
+        # Build final weekly list & current/last week stats
+        weekly_history = []
+        for k in sorted(weeks_dict.keys()):
+            item = weeks_dict[k]
+            item["total_hours"] = round(item["total_seconds"] / 3600.0, 1)
+            item["total_time_str"] = format_dur(item["total_seconds"])
+            item["distance_km"] = round(item["distance_km"], 1)
+            weekly_history.append(item)
+
+        cur_week_key = f"{current_iso_year}-W{current_iso_week:02d}"
+        cur_w_data = weeks_dict.get(cur_week_key, {})
+        last_w_data = weekly_history[-2] if len(weekly_history) >= 2 else {}
+
+        data["weekly_stats"] = {
+            "current_week": {
+                "hours": cur_w_data.get("total_hours", 0.0),
+                "seconds": cur_w_data.get("total_seconds", 0),
+                "time_str": format_dur(cur_w_data.get("total_seconds", 0)),
+                "training_load": cur_w_data.get("training_load", 0),
+                "distance_km": cur_w_data.get("distance_km", 0.0),
+                "count": cur_w_data.get("count", 0),
+                "week_label": cur_w_data.get("week_label", ""),
+                "date_range": cur_w_data.get("date_range", ""),
+            },
+            "last_week": {
+                "hours": last_w_data.get("total_hours", 0.0),
+                "seconds": last_w_data.get("total_seconds", 0),
+                "time_str": last_w_data.get("total_time_str", "0 min"),
+                "training_load": last_w_data.get("training_load", 0),
+                "distance_km": last_w_data.get("distance_km", 0.0),
+                "count": last_w_data.get("count", 0),
+                "week_label": last_w_data.get("week_label", ""),
+                "date_range": last_w_data.get("date_range", ""),
+            },
+            "weekly_history": weekly_history,
         }
 
         # 3. Fetch scheduled workouts & map entities to programs

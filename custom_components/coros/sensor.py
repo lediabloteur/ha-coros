@@ -354,6 +354,51 @@ SENSOR_DESCRIPTIONS: tuple[CorosSensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         entity_id_override="sensor.coros_charge_entrainement_mois",
         value_fn=lambda d: d.get("monthly_stats", {}).get("training_load", 0),
+        attrs_fn=lambda d: {
+            "weekly_history": d.get("weekly_stats", {}).get("weekly_history", []),
+        },
+    ),
+
+    # --- Statistiques Hebdomadaires ---
+    CorosSensorEntityDescription(
+        key="temps_activite_semaine",
+        name="COROS Temps d'Activité (Semaine)",
+        native_unit_of_measurement="h",
+        icon="mdi:timer-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_id_override="sensor.coros_temps_activite_semaine",
+        value_fn=lambda d: d.get("weekly_stats", {}).get("current_week", {}).get("hours", 0.0),
+        attrs_fn=lambda d: {
+            "time_str": d.get("weekly_stats", {}).get("current_week", {}).get("time_str", "0 min"),
+            "seconds": d.get("weekly_stats", {}).get("current_week", {}).get("seconds", 0),
+            "training_load": d.get("weekly_stats", {}).get("current_week", {}).get("training_load", 0),
+            "distance_km": d.get("weekly_stats", {}).get("current_week", {}).get("distance_km", 0.0),
+            "count": d.get("weekly_stats", {}).get("current_week", {}).get("count", 0),
+            "week_label": d.get("weekly_stats", {}).get("current_week", {}).get("week_label", ""),
+            "date_range": d.get("weekly_stats", {}).get("current_week", {}).get("date_range", ""),
+            "last_week_hours": d.get("weekly_stats", {}).get("last_week", {}).get("hours", 0.0),
+            "last_week_load": d.get("weekly_stats", {}).get("last_week", {}).get("training_load", 0),
+            "weekly_history": d.get("weekly_stats", {}).get("weekly_history", []),
+        },
+    ),
+    CorosSensorEntityDescription(
+        key="charge_entrainement_semaine",
+        name="COROS Charge d'Entraînement (Semaine)",
+        native_unit_of_measurement="TL",
+        icon="mdi:chart-bell-curve-cumulative",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_id_override="sensor.coros_charge_entrainement_semaine",
+        value_fn=lambda d: d.get("weekly_stats", {}).get("current_week", {}).get("training_load", 0),
+        attrs_fn=lambda d: {
+            "hours": d.get("weekly_stats", {}).get("current_week", {}).get("hours", 0.0),
+            "time_str": d.get("weekly_stats", {}).get("current_week", {}).get("time_str", "0 min"),
+            "distance_km": d.get("weekly_stats", {}).get("current_week", {}).get("distance_km", 0.0),
+            "count": d.get("weekly_stats", {}).get("current_week", {}).get("count", 0),
+            "week_label": d.get("weekly_stats", {}).get("current_week", {}).get("week_label", ""),
+            "date_range": d.get("weekly_stats", {}).get("current_week", {}).get("date_range", ""),
+            "last_week_load": d.get("weekly_stats", {}).get("last_week", {}).get("training_load", 0),
+            "weekly_history": d.get("weekly_stats", {}).get("weekly_history", []),
+        },
     ),
 
     # --- Planning & Prochaine Séance ---
