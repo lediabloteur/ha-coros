@@ -53,7 +53,108 @@ def compute_pace(time_str: str | None, dist_km: float) -> str:
     else:
         return ""
     pace_sec = int(round(sec / dist_km))
-    return f"{pace_sec // 60}:{pace_sec % 60:02d} /km"
+SPORT_MAP = {
+    100: ("Course à pied", "run", "mdi:run"),
+    101: ("Tapis de course", "run", "mdi:run-fast"),
+    102: ("Trail", "run", "mdi:hiking"),
+    103: ("Piste", "run", "mdi:run"),
+    200: ("Vélo de route", "bike", "mdi:bike"),
+    201: ("Home-trainer", "bike", "mdi:bike-fast"),
+    202: ("VTT", "bike", "mdi:bicycle"),
+    203: ("Gravel", "bike", "mdi:bike"),
+    204: ("Vélo électrique", "bike", "mdi:moped"),
+    300: ("Renforcement", "strength", "mdi:dumbbell"),
+    301: ("Musculation", "strength", "mdi:dumbbell"),
+    400: ("Natation", "swim", "mdi:swim"),
+    401: ("Natation eau libre", "swim", "mdi:swim"),
+    500: ("Marche", "walk", "mdi:walk"),
+    501: ("Randonnée", "walk", "mdi:hiking"),
+}
+
+def format_duration(seconds: int) -> str:
+    """Format seconds into readable duration string."""
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    if h > 0:
+        return f"{h}h {m:02d}m {s:02d}s" if s > 0 else f"{h}h {m:02d}m"
+    if m > 0:
+        return f"{m}m {s:02d}s" if s > 0 else f"{m}m"
+    return f"{s}s"
+
+def parse_coros_activity(a: dict) -> dict:
+    """Parse raw COROS activity dict into structured activity data."""
+    st = a.get("sportType") or a.get("mode") or 0
+    name = a.get("name") or "Activité"
+    name_l = name.lower()
+
+    if st in SPORT_MAP:
+        sport_name, category, icon = SPORT_MAP[st]
+    elif any(k in name_l for k in ["course", "cap", "footing", "fractionné", "seuil"]):
+        sport_name, category, icon = "Course à pied", "run", "mdi:run"
+    elif any(k in name_l for k in ["trail", "dénivelé"]):
+        sport_name, category, icon = "Trail", "run", "mdi:hiking"
+    elif any(k in name_l for k in ["vélo", "gravel", "vtt", "cyclisme", "sortie"]):
+        sport_name, category, icon = "Vélo", "bike", "mdi:bike"
+    elif any(k in name_l for k in ["muscu", "renfo", "ppg", "gainage"]):
+        sport_name, category, icon = "Renforcement", "strength", "mdi:dumbbell"
+    else:
+        sport_name, category, icon = "Activité", "other", "mdi:shoe-print"
+
+    dist_m = float(a.get("distance") or 0)
+    dist_km = round(dist_m / 1000.0, 2)
+    tot_sec = int(a.get("totalTime") or 0)
+    work_sec = int(a.get("workoutTime") or tot_sec)
+
+    pace_str = None
+    speed_kmh = None
+    if dist_km > 0 and work_sec > 0:
+        speed_kmh = round((dist_km / (work_sec / 3600.0)), 2)
+        pace_sec = int(round(work_sec / dist_km))
+        pace_str = f"{pace_sec // 60}:{pace_sec % 60:02d} /km"
+
+    start_ts = a.get("startTime")
+    start_iso = None
+    date_fr = None
+    if start_ts:
+        try:
+            dt = datetime.fromtimestamp(start_ts)
+            start_iso = dt.isoformat()
+            date_fr = dt.strftime("%d/%m/%Y %H:%M")
+        except Exception:
+            pass
+
+    cal = a.get("calorie") or 0
+    kcal = int(round(cal / 1000.0)) if cal > 1000 else int(cal)
+
+    return {
+        "label_id": str(a.get("labelId") or ""),
+        "name": name,
+        "sport": sport_name,
+        "category": category,
+        "icon": icon,
+        "sport_type": st,
+        "date": str(a.get("date") or ""),
+        "date_formatted": date_fr,
+        "start_time": start_iso,
+        "distance_km": dist_km,
+        "distance_m": int(round(dist_m)),
+        "duration": format_duration(tot_sec),
+        "duration_seconds": tot_sec,
+        "moving_time": format_duration(work_sec),
+        "moving_time_seconds": work_sec,
+        "pace": pace_str,
+        "speed_kmh": speed_kmh,
+        "avg_hr": a.get("avgHr") or None,
+        "max_hr": a.get("maxHeartRate") or a.get("maxHr") or a.get("avgHr") or None,
+        "elevation_gain": int(a.get("ascent") or 0),
+        "elevation_loss": int(a.get("descent") or 0),
+        "calories": kcal,
+        "cadence": a.get("cadence") or None,
+        "training_load": a.get("trainingLoad") or 0,
+        "device": a.get("device") or None,
+        "map_url": a.get("imageUrl") or None,
+    }
 
 class CorosDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching COROS data from API and MCP gateway."""
@@ -362,6 +463,10 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "recovery": {},
             "health": {},
             "sleep": {},
+            "latest_activity": None,
+            "recent_activities": [],
+            "latest_run": None,
+            "latest_bike": None,
         }
 
         # 1. Login to COROS Consumer API
@@ -441,9 +546,13 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
                 "is_current": (y == current_iso_year and w == current_iso_week),
             }
 
+        parsed_activities = []
         if acts_res.status_code == 200:
             acts = acts_res.json().get("data", {}).get("dataList", [])
             for a in acts:
+                parsed_act = parse_coros_activity(a)
+                parsed_activities.append(parsed_act)
+
                 d_str = str(a.get("date") or "")
                 st = a.get("sportType") or a.get("mode")
                 dist = (a.get("distance") or 0) / 1000.0
@@ -479,6 +588,15 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
                             weeks_dict[w_key]["count"] += 1
                     except Exception:
                         pass
+
+        if parsed_activities:
+            data["latest_activity"] = parsed_activities[0]
+            data["recent_activities"] = parsed_activities[:10]
+            for act in parsed_activities:
+                if act["category"] == "run" and data["latest_run"] is None:
+                    data["latest_run"] = act
+                if act["category"] == "bike" and data["latest_bike"] is None:
+                    data["latest_bike"] = act
 
         def format_dur(seconds):
             h = seconds // 3600
