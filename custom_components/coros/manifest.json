@@ -2,7 +2,6 @@
   "domain": "coros",
   "name": "COROS Training Hub & Health",
   "codeowners": [
-    "@lediabloteur",
     "@lediabloteur"
   ],
   "config_flow": true,
