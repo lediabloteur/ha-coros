@@ -16,7 +16,6 @@ If you discover a security vulnerability or potential sensitive data leak, pleas
 Instead, please report it through one of the following secure channels:
 
 1. **GitHub Private Vulnerability Reporting**: Open a private advisory under the **Security** tab of this repository.
-2. **Email**: Contact the repository owner directly at `lediabloteur@users.noreply.github.com`.
 
 ### What to include in your report:
 - A clear description of the vulnerability and its potential impact.
