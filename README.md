@@ -15,6 +15,11 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 
 ## ✨ Features
 
+- 🗺️ **Latest Activities & Route Maps**
+  - Instant sync of your latest completed workouts with sport detection (`sensor.coros_derniere_activite`, `sensor.coros_derniere_course`, `sensor.coros_derniere_sortie_velo`).
+  - High-definition dark route maps rendered by COROS directly available on sensor `entity_picture` and native Home Assistant image entities (`image.coros_derniere_activite_carte`, etc.).
+  - Rich metrics: Distance, Duration, Moving Time, Average Pace (min/km) or Speed (km/h), Heart Rate (Avg & Max), Elevation (D+ / D-), Calories, Cadence, Training Load, Device.
+  - Full history attribute `recent_activities` listing the 10 most recent workouts with their respective maps and metrics.
 - 📅 **Native Calendar Entity (`calendar.coros_training_schedule`)**
   - Displays all upcoming workouts planned in your COROS calendar.
   - Full details for each session: Warmup, Intervals (Threshold/VMA pace targets), Recovery, and Cooldown.
@@ -33,10 +38,15 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
   - **VO2max, Threshold Pace, and Running Level** (`sensor.coros_vo2max`, `sensor.coros_threshold_pace`, `sensor.coros_running_level`).
   - **Training Load Assessment, Fitness & Fatigue** (`sensor.coros_training_load_status`, `sensor.coros_short_term_load`, `sensor.coros_long_term_load`, `sensor.coros_load_ratio`).
 
-### 📋 Exposed Sensor Entities
+### 📋 Exposed Entities
+
+#### Sensors
 
 | Sensor Entity ID | Friendly Name | Description / Attributes |
 |---|---|---|
+| `sensor.coros_derniere_activite` | Dernière Activité | Name, distance, pace/speed, HR, D+, device, map thumbnail (`entity_picture`), last 10 activities attribute |
+| `sensor.coros_derniere_course` | Dernière Course | Latest running workout with pace, HR, D+, calories, map |
+| `sensor.coros_derniere_sortie_velo` | Dernière Sortie Vélo | Latest cycling/gravel ride with speed, HR, D+, map |
 | `sensor.coros_vo2max` | VO2max | VO2max (ml/kg/min) |
 | `sensor.coros_running_level` | Niveau de Course | Running ability score (/100) |
 | `sensor.coros_threshold_pace` | Allure Seuil | Threshold pace (/km) |
@@ -67,6 +77,14 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 | `sensor.coros_charge_entrainement_semaine` | Charge d'Entraînement (Semaine) | Current week training load (TL) & 8-week history |
 | `sensor.coros_planning_entrainements` | Planning Entraînements | Next workout name & details, next 10 workouts attribute |
 | `calendar.planning_entrainements_coros` | Planning COROS | Full Home Assistant calendar with scheduled workouts |
+
+#### Route Maps (Image Platform)
+
+| Image Entity ID | Friendly Name | Description |
+|---|---|---|
+| `image.coros_derniere_activite_carte` | Carte Dernière Activité | High-resolution route map image of your latest activity |
+| `image.coros_derniere_course_carte` | Carte Dernière Course | Route map image of your latest running workout |
+| `image.coros_derniere_sortie_velo_carte` | Carte Dernière Sortie Vélo | Route map image of your latest cycling/gravel ride |
 
 ---
 

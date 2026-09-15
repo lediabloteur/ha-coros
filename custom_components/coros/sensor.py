@@ -25,7 +25,41 @@ class CorosSensorEntityDescription(SensorEntityDescription):
 
     value_fn: Callable[[dict[str, Any]], Any]
     attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+    picture_fn: Callable[[dict[str, Any]], str | None] | None = None
+    icon_fn: Callable[[dict[str, Any]], str | None] | None = None
     entity_id_override: str | None = None
+
+def _format_activity_state(act: dict[str, Any] | None) -> str:
+    """Format human-readable state for an activity."""
+    if not act:
+        return "Aucune activité"
+    name = act.get("name") or "Activité"
+    dist = act.get("distance_km", 0)
+    if dist > 0:
+        return f"{name} ({dist} km)"
+    dur = act.get("duration")
+    if dur:
+        return f"{name} ({dur})"
+    return name
+
+def _get_latest_activity_attrs(data: dict[str, Any]) -> dict[str, Any]:
+    """Return all attributes of latest activity plus recent_activities list."""
+    act = data.get("latest_activity")
+    if not act:
+        return {}
+    attrs = dict(act)
+    attrs["recent_activities"] = data.get("recent_activities", [])
+    return attrs
+
+def _get_latest_run_attrs(data: dict[str, Any]) -> dict[str, Any]:
+    """Return all attributes of latest running activity."""
+    act = data.get("latest_run")
+    return dict(act) if act else {}
+
+def _get_latest_bike_attrs(data: dict[str, Any]) -> dict[str, Any]:
+    """Return all attributes of latest cycling activity."""
+    act = data.get("latest_bike")
+    return dict(act) if act else {}
 
 def _get_upcoming_workouts_value(data: dict[str, Any]) -> str:
     schedule = data.get("schedule", [])
@@ -410,6 +444,35 @@ SENSOR_DESCRIPTIONS: tuple[CorosSensorEntityDescription, ...] = (
         value_fn=_get_upcoming_workouts_value,
         attrs_fn=_get_upcoming_workouts_attrs,
     ),
+
+    # --- Dernières Activités & Cartes ---
+    CorosSensorEntityDescription(
+        key="latest_activity",
+        name="COROS Dernière Activité",
+        entity_id_override="sensor.coros_derniere_activite",
+        value_fn=lambda d: _format_activity_state(d.get("latest_activity")),
+        attrs_fn=_get_latest_activity_attrs,
+        picture_fn=lambda d: (d.get("latest_activity") or {}).get("map_url"),
+        icon_fn=lambda d: (d.get("latest_activity") or {}).get("icon", "mdi:shoe-print"),
+    ),
+    CorosSensorEntityDescription(
+        key="latest_run",
+        name="COROS Dernière Course",
+        icon="mdi:run",
+        entity_id_override="sensor.coros_derniere_course",
+        value_fn=lambda d: _format_activity_state(d.get("latest_run")),
+        attrs_fn=_get_latest_run_attrs,
+        picture_fn=lambda d: (d.get("latest_run") or {}).get("map_url"),
+    ),
+    CorosSensorEntityDescription(
+        key="latest_bike",
+        name="COROS Dernière Sortie Vélo",
+        icon="mdi:bike",
+        entity_id_override="sensor.coros_derniere_sortie_velo",
+        value_fn=lambda d: _format_activity_state(d.get("latest_bike")),
+        attrs_fn=_get_latest_bike_attrs,
+        picture_fn=lambda d: (d.get("latest_bike") or {}).get("map_url"),
+    ),
 )
 
 async def async_setup_entry(
@@ -467,3 +530,19 @@ class CorosSensor(CoordinatorEntity, SensorEntity):
         if self.entity_description.attrs_fn:
             return self.entity_description.attrs_fn(self.coordinator.data)
         return None
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return entity picture if configured."""
+        if self.entity_description.picture_fn:
+            return self.entity_description.picture_fn(self.coordinator.data)
+        return None
+
+    @property
+    def icon(self) -> str | None:
+        """Return icon, dynamically computed if icon_fn is provided."""
+        if self.entity_description.icon_fn:
+            dynamic_icon = self.entity_description.icon_fn(self.coordinator.data)
+            if dynamic_icon:
+                return dynamic_icon
+        return self.entity_description.icon
