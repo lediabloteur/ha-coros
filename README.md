@@ -99,6 +99,46 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 
 ---
 
+## 🎨 Dashboard Lovelace Cards
+
+You can display your latest workout with its dark route map and metrics in your Lovelace dashboard using the pre-built templates below (see also [examples/card_derniere_activite.yaml](examples/card_derniere_activite.yaml)):
+
+### Option 1: Standard Markdown Card (No plugins required)
+```yaml
+type: markdown
+title: Dernière Activité COROS
+content: |
+  <center>
+    <a href="https://training.coros.com" target="_blank">
+      <img src="{{ state_attr('sensor.coros_derniere_activite', 'map_url') }}" width="100%" style="border-radius: 16px; max-width: 360px; border: 1px solid rgba(255,255,255,0.1);" />
+    </a>
+  </center>
+
+  ### 🏅 [{{ state_attr('sensor.coros_derniere_activite', 'name') }}](https://training.coros.com)
+  * **Sport** : {{ state_attr('sensor.coros_derniere_activite', 'sport') }} ({{ state_attr('sensor.coros_derniere_activite', 'device') }})
+  * **Date** : {{ state_attr('sensor.coros_derniere_activite', 'date_formatted') }}
+  * **Distance** : {{ state_attr('sensor.coros_derniere_activite', 'distance_km') }} km
+  * **Durée** : {{ state_attr('sensor.coros_derniere_activite', 'duration') }}
+  * **Allure / Vitesse** : {{ state_attr('sensor.coros_derniere_activite', 'pace') or (state_attr('sensor.coros_derniere_activite', 'speed_kmh') ~ ' km/h') }}
+  * **Cardio** : {{ state_attr('sensor.coros_derniere_activite', 'avg_hr') }} bpm
+  * **Dénivelé** : +{{ state_attr('sensor.coros_derniere_activite', 'elevation_gain') }} m / -{{ state_attr('sensor.coros_derniere_activite', 'elevation_loss') }} m
+  * **Charge (TL)** : {{ state_attr('sensor.coros_derniere_activite', 'training_load') }}
+```
+
+### Option 2: Pure Route Map Image Card
+```yaml
+type: picture-entity
+entity: image.coros_derniere_activite_carte
+name: Dernière Activité COROS
+show_state: false
+show_name: true
+tap_action:
+  action: url
+  url_path: https://training.coros.com
+```
+
+---
+
 ## 🔒 Privacy & Authentication
 This integration connects directly and securely to the official COROS European / US Training Hub APIs and MCP endpoint.
 

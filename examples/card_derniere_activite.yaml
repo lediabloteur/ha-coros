@@ -1,0 +1,157 @@
+# ==============================================================================
+# COROS Home Assistant Integration - Exemples de Cartes Dashboard Lovelace
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# OPTION 1 : Carte Markdown Standard (Fonctionne immédiatement sans aucun plugin)
+# ------------------------------------------------------------------------------
+type: markdown
+title: Dernière Activité COROS
+content: |
+  <center>
+    <a href="https://training.coros.com" target="_blank">
+      <img src="{{ state_attr('sensor.coros_derniere_activite', 'map_url') }}" width="100%" style="border-radius: 16px; max-width: 360px; border: 1px solid rgba(255,255,255,0.1);" />
+    </a>
+  </center>
+
+  ### 🏅 [{{ state_attr('sensor.coros_derniere_activite', 'name') }}](https://training.coros.com)
+  * **Sport** : {{ state_attr('sensor.coros_derniere_activite', 'sport') }} ({{ state_attr('sensor.coros_derniere_activite', 'device') }})
+  * **Date** : {{ state_attr('sensor.coros_derniere_activite', 'date_formatted') }}
+  * **Distance** : {{ state_attr('sensor.coros_derniere_activite', 'distance_km') }} km
+  * **Durée** : {{ state_attr('sensor.coros_derniere_activite', 'duration') }}
+  * **Allure / Vitesse** : {{ state_attr('sensor.coros_derniere_activite', 'pace') or (state_attr('sensor.coros_derniere_activite', 'speed_kmh') ~ ' km/h') }}
+  * **Cardio** : {{ state_attr('sensor.coros_derniere_activite', 'avg_hr') }} bpm
+  * **Dénivelé** : +{{ state_attr('sensor.coros_derniere_activite', 'elevation_gain') }} m / -{{ state_attr('sensor.coros_derniere_activite', 'elevation_loss') }} m
+  * **Charge (TL)** : {{ state_attr('sensor.coros_derniere_activite', 'training_load') }}
+
+---
+
+# ------------------------------------------------------------------------------
+# OPTION 2 : Carte Picture-Entity (Affichage épuré de la carte en grand format)
+# ------------------------------------------------------------------------------
+type: picture-entity
+entity: image.coros_derniere_activite_carte
+name: Dernière Activité COROS
+show_state: false
+show_name: true
+tap_action:
+  action: url
+  url_path: https://training.coros.com
+
+---
+
+# ------------------------------------------------------------------------------
+# OPTION 3 : Carte Avancée Frosted Glass (custom:button-card)
+# ------------------------------------------------------------------------------
+type: custom:button-card
+entity: sensor.coros_derniere_activite
+triggers_update:
+  - sensor.coros_derniere_activite
+  - sensor.coros_derniere_course
+  - sensor.coros_derniere_sortie_velo
+show_name: false
+show_icon: false
+show_state: false
+styles:
+  card:
+    - overflow: hidden
+    - box-shadow: none
+    - background: "color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 55%, transparent)"
+    - backdrop-filter: blur(20px)
+    - -webkit-backdrop-filter: blur(20px)
+    - border: 1px solid rgba(100, 100, 100, 0.25)
+    - border-radius: 28px
+    - padding: 16px
+    - box-sizing: border-box
+    - cursor: default
+    - text-align: left
+  grid:
+    - display: grid
+    - grid-template-areas: '"content"'
+    - grid-template-columns: 100%
+    - grid-template-rows: auto
+  custom_fields:
+    content:
+      - width: 100%
+custom_fields:
+  content: |
+    [[[
+      const act = states['sensor.coros_derniere_activite'];
+      if (!act || !act.attributes) return '<div>Chargement de la dernière activité...</div>';
+      const a = act.attributes;
+
+      const sportName = a.sport || 'Activité';
+      const sportIcon = a.icon || 'mdi:run';
+      const device = a.device || 'COROS';
+      const name = a.name || 'Activité COROS';
+      const dateStr = a.date_formatted || '';
+      const dist = a.distance_km != null ? a.distance_km : '-';
+      const dur = a.duration || '-';
+      const isBike = a.category === 'bike';
+      const paceOrSpeed = isBike ? (a.speed_kmh ? a.speed_kmh + ' km/h' : '-') : (a.pace || '-');
+      const speedLabel = isBike ? 'Vitesse' : 'Allure';
+      const hr = a.avg_hr ? a.avg_hr : '-';
+      const dplus = a.elevation_gain != null ? a.elevation_gain : 0;
+      const tl = a.training_load != null ? a.training_load : 0;
+      const mapUrl = a.map_url;
+
+      return `
+        <div style="display: flex; flex-direction: column; gap: 14px; font-family: var(--ha-font-family, system-ui);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(255, 110, 0, 0.2); color: #ff8533;">
+                  <ha-icon icon="${sportIcon}" style="--mdc-icon-size: 14px;"></ha-icon>
+                  ${sportName}
+                </span>
+                <span style="font-size: 11px; color: var(--secondary-text-color);">${device}</span>
+              </div>
+              <div style="font-size: 18px; font-weight: 700; color: var(--primary-text-color); line-height: 1.2;">
+                ${name}
+              </div>
+              <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 3px;">
+                ${dateStr}
+              </div>
+            </div>
+            <a href="https://training.coros.com" target="_blank" style="text-decoration: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(255, 255, 255, 0.08); color: var(--primary-text-color); border: 1px solid rgba(255, 255, 255, 0.15); display: inline-flex; align-items: center; gap: 4px;">
+              COROS Hub <ha-icon icon="mdi:open-in-new" style="--mdc-icon-size: 12px;"></ha-icon>
+            </a>
+          </div>
+
+          ${mapUrl ? `
+          <div style="position: relative; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); background: #121212;">
+            <a href="https://training.coros.com" target="_blank" style="display: block;">
+              <img src="${mapUrl}" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Parcours GPS" />
+            </a>
+          </div>
+          ` : ''}
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">Distance</div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--primary-text-color); margin-top: 2px;">${dist} <span style="font-size: 11px; font-weight: 400;">km</span></div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">Durée</div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--primary-text-color); margin-top: 2px;">${dur}</div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">${speedLabel}</div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--primary-text-color); margin-top: 2px;">${paceOrSpeed}</div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">Cardio</div>
+              <div style="font-size: 16px; font-weight: 700; color: #ff5252; margin-top: 2px;">${hr} <span style="font-size: 11px; font-weight: 400; color: var(--secondary-text-color);">bpm</span></div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">Dénivelé</div>
+              <div style="font-size: 16px; font-weight: 700; color: #4caf50; margin-top: 2px;">+${dplus} <span style="font-size: 11px; font-weight: 400; color: var(--secondary-text-color);">m</span></div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+              <div style="font-size: 11px; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600;">Charge TL</div>
+              <div style="font-size: 16px; font-weight: 700; color: #ffb300; margin-top: 2px;">${tl}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    ]]]
