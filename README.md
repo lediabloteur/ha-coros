@@ -108,11 +108,13 @@ You can display your latest workout with its dark route map and metrics in your 
 type: markdown
 title: Dernière Activité COROS
 content: |
+  {% if state_attr('sensor.coros_derniere_activite', 'has_gps') and state_attr('sensor.coros_derniere_activite', 'map_url') %}
   <center>
     <a href="https://training.coros.com" target="_blank">
       <img src="{{ state_attr('sensor.coros_derniere_activite', 'map_url') }}" width="100%" style="border-radius: 16px; max-width: 360px; border: 1px solid rgba(255,255,255,0.1);" />
     </a>
   </center>
+  {% endif %}
 
   ### 🏅 [{{ state_attr('sensor.coros_derniere_activite', 'name') }}](https://training.coros.com)
   * **Sport** : {{ state_attr('sensor.coros_derniere_activite', 'sport') }} ({{ state_attr('sensor.coros_derniere_activite', 'device') }})
