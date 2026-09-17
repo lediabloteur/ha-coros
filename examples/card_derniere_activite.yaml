@@ -8,11 +8,13 @@
 type: markdown
 title: Dernière Activité COROS
 content: |
+  {% if state_attr('sensor.coros_derniere_activite', 'has_gps') and state_attr('sensor.coros_derniere_activite', 'map_url') %}
   <center>
     <a href="https://training.coros.com" target="_blank">
       <img src="{{ state_attr('sensor.coros_derniere_activite', 'map_url') }}" width="100%" style="border-radius: 16px; max-width: 360px; border: 1px solid rgba(255,255,255,0.1);" />
     </a>
   </center>
+  {% endif %}
 
   ### 🏅 [{{ state_attr('sensor.coros_derniere_activite', 'name') }}](https://training.coros.com)
   * **Sport** : {{ state_attr('sensor.coros_derniere_activite', 'sport') }} ({{ state_attr('sensor.coros_derniere_activite', 'device') }})
@@ -93,7 +95,8 @@ custom_fields:
       const hr = a.avg_hr ? a.avg_hr : '-';
       const dplus = a.elevation_gain != null ? a.elevation_gain : 0;
       const tl = a.training_load != null ? a.training_load : 0;
-      const mapUrl = a.map_url;
+      const hasGps = Boolean(a.has_gps && a.map_url);
+      const mapUrl = hasGps ? a.map_url : null;
 
       return `
         <div style="display: flex; flex-direction: column; gap: 14px; font-family: var(--ha-font-family, system-ui);">
@@ -118,7 +121,7 @@ custom_fields:
             </a>
           </div>
 
-          ${mapUrl ? `
+          ${hasGps && mapUrl ? `
           <div style="position: relative; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); background: #121212;">
             <a href="https://training.coros.com" target="_blank" style="display: block;">
               <img src="${mapUrl}" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Parcours GPS" />

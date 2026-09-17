@@ -67,8 +67,11 @@ SPORT_MAP = {
     301: ("Musculation", "strength", "mdi:dumbbell"),
     400: ("Natation", "swim", "mdi:swim"),
     401: ("Natation eau libre", "swim", "mdi:swim"),
+    402: ("Musculation", "strength", "mdi:dumbbell"),
     500: ("Marche", "walk", "mdi:walk"),
     501: ("Randonnée", "walk", "mdi:hiking"),
+    900: ("Marche", "walk", "mdi:walk"),
+    901: ("Corde à sauter", "other", "mdi:jump-rope"),
 }
 
 def format_duration(seconds: int) -> str:
@@ -127,6 +130,12 @@ def parse_coros_activity(a: dict) -> dict:
     cal = a.get("calorie") or 0
     kcal = int(round(cal / 1000.0)) if cal > 1000 else int(cal)
 
+    # Detect actual GPS route map (COROS uses imageUrlType == 1 and /img/ for GPS maps)
+    img_type = a.get("imageUrlType")
+    img_url = a.get("imageUrl")
+    has_gps = bool(img_type == 1 and img_url and "/img/" in img_url)
+    map_url = img_url if has_gps else None
+
     return {
         "label_id": str(a.get("labelId") or ""),
         "name": name,
@@ -153,7 +162,8 @@ def parse_coros_activity(a: dict) -> dict:
         "cadence": a.get("cadence") or None,
         "training_load": a.get("trainingLoad") or 0,
         "device": a.get("device") or None,
-        "map_url": a.get("imageUrl") or None,
+        "has_gps": has_gps,
+        "map_url": map_url,
     }
 
 class CorosDataUpdateCoordinator(DataUpdateCoordinator):

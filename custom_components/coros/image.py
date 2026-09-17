@@ -87,7 +87,7 @@ class CorosActivityMapImage(CoordinatorEntity, ImageEntity):
     def image_url(self) -> str | None:
         """Return the URL of the image to display."""
         act = self.coordinator.data.get(self._data_key)
-        if act and isinstance(act, dict):
+        if act and isinstance(act, dict) and act.get("has_gps"):
             return act.get("map_url")
         return None
 
@@ -95,11 +95,12 @@ class CorosActivityMapImage(CoordinatorEntity, ImageEntity):
     def image_last_updated(self) -> datetime | None:
         """Return when the image was last updated."""
         act = self.coordinator.data.get(self._data_key)
-        if act and isinstance(act, dict):
+        if act and isinstance(act, dict) and act.get("has_gps"):
             start_time = act.get("start_time")
             if start_time:
                 try:
                     return datetime.fromisoformat(start_time)
                 except Exception:
                     pass
-        return self.coordinator.last_update_success_time
+            return self.coordinator.last_update_success_time
+        return None
