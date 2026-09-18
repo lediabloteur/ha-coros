@@ -473,6 +473,14 @@ SENSOR_DESCRIPTIONS: tuple[CorosSensorEntityDescription, ...] = (
         attrs_fn=_get_latest_bike_attrs,
         picture_fn=lambda d: (d.get("latest_bike") or {}).get("map_url"),
     ),
+    CorosSensorEntityDescription(
+        key="prochaine_course",
+        name="COROS Prochaine Compétition",
+        icon="mdi:medal",
+        entity_id_override="sensor.coros_prochaine_course",
+        value_fn=lambda d: d.get("next_race", {}).get("name") or "Aucune",
+        attrs_fn=lambda d: d.get("next_race", {}),
+    ),
 )
 
 async def async_setup_entry(
