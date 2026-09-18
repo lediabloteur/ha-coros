@@ -76,7 +76,8 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 | `sensor.coros_temps_activite_semaine` | Temps d'Activité (Semaine) | Current week activity time (h), duration, distance, count & 8-week history |
 | `sensor.coros_charge_entrainement_semaine` | Charge d'Entraînement (Semaine) | Current week training load (TL) & 8-week history |
 | `sensor.coros_planning_entrainements` | Planning Entraînements | Next workout name & details, next 10 workouts attribute |
-| `calendar.planning_entrainements_coros` | Planning COROS | Full Home Assistant calendar with scheduled workouts |
+| `sensor.coros_prochaine_course` | Prochaine Compétition | Next official competition/race scheduled in COROS agenda |
+| `calendar.planning_entrainements_coros` | Planning COROS | Full Home Assistant calendar with scheduled workouts & races |
 
 #### Route Maps (Image Platform)
 

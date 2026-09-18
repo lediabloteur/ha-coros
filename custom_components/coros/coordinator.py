@@ -468,6 +468,7 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "monthly_stats": {},
             "weekly_stats": {},
             "schedule": [],
+            "next_race": {"has_race": False, "name": None, "date": None, "days_until": None, "distance": None, "races": []},
             "fitness": {},
             "training_status": {},
             "recovery": {},
@@ -671,9 +672,9 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "weekly_history": weekly_history,
         }
 
-        # 3. Fetch scheduled workouts & map entities to programs
+        # 3. Fetch scheduled workouts & official race eventTags
         sched_start = now.strftime("%Y%m01")
-        sched_end = (now + timedelta(days=45)).strftime("%Y%m%d")
+        sched_end = (now + timedelta(days=365)).strftime("%Y%m%d")
         sched_res = requests.get(
             f"{API_BASE_URL}/training/schedule/query?startDate={sched_start}&endDate={sched_end}&supportRestExercise=1",
             headers=headers,
@@ -683,8 +684,27 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             s_data = sched_res.json().get("data", {})
             entities = s_data.get("entities", [])
             programs_by_id = {str(p.get("idInPlan") or p.get("id")): p for p in s_data.get("programs", [])}
+            event_tags = s_data.get("eventTags", []) or []
 
             schedule_list = []
+            today_str = now.strftime("%Y%m%d")
+
+            # A. Add official COROS event tags (competitions registered in COROS)
+            for tag in event_tags:
+                happen_day = str(tag.get("happenDay") or "")
+                tag_name = tag.get("name") or "Compétition COROS"
+                schedule_list.append({
+                    "date": happen_day,
+                    "name": tag_name,
+                    "overview": "Compétition officielle inscrite dans l'agenda COROS",
+                    "sport_type": 102 if "trail" in tag_name.lower() else 100,
+                    "is_race": True,
+                    "color": "#ff6f00",
+                    "icon": "mdi:medal",
+                    "training_load": 0,
+                })
+
+            # B. Add scheduled workouts from training plan
             for e in entities:
                 happen_day = str(e.get("happenDay") or "")
                 plan_prog_id = str(e.get("idInPlan") or e.get("planProgramId") or e.get("programId") or "")
@@ -694,15 +714,19 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
                 overview = prog.get("overview") or prog.get("description") or ""
                 sport_type = prog.get("sportType", 1)
 
-                is_ppg = "ppg" in name.lower() or "renfo" in name.lower() or sport_type in [300, 301, 302, 303, 304, 305]
-                color = "#ab47bc" if is_ppg else "#00b0ff"
-                icon = "mdi:weight-lifter" if is_ppg else "mdi:run-fast"
+                name_lower = name.lower()
+                is_race = "officielle" in name_lower or "compétition" in name_lower or "competition" in name_lower or "dossard" in name_lower
+                is_ppg = "ppg" in name_lower or "renfo" in name_lower or sport_type in [300, 301, 302, 303, 304, 305]
+
+                color = "#ff6f00" if is_race else ("#ab47bc" if is_ppg else "#00b0ff")
+                icon = "mdi:medal" if is_race else ("mdi:weight-lifter" if is_ppg else "mdi:run-fast")
 
                 schedule_list.append({
                     "date": happen_day,
                     "name": name,
                     "overview": overview,
                     "sport_type": sport_type,
+                    "is_race": is_race,
                     "color": color,
                     "icon": icon,
                     "training_load": prog.get("trainingLoad") or 0
@@ -710,6 +734,49 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
 
             schedule_list.sort(key=lambda x: x["date"])
             data["schedule"] = schedule_list
+
+            # C. Detect next upcoming official competition from COROS agenda
+            upcoming_races = [
+                s for s in schedule_list
+                if s.get("is_race") and str(s.get("date", "")) >= today_str
+            ]
+            upcoming_races.sort(key=lambda x: str(x.get("date", "")))
+
+            if upcoming_races:
+                first_race = upcoming_races[0]
+                race_d_str = str(first_race.get("date", ""))
+                try:
+                    r_dt = datetime.strptime(race_d_str, "%Y%m%d").date()
+                    days_until = (r_dt - now.date()).days
+                    date_iso = r_dt.isoformat()
+                except Exception:
+                    days_until = 0
+                    date_iso = race_d_str
+
+                data["next_race"] = {
+                    "has_race": True,
+                    "name": first_race.get("name"),
+                    "date": date_iso,
+                    "days_until": days_until,
+                    "distance": first_race.get("overview") or "",
+                    "races": [
+                        {
+                            "name": r.get("name"),
+                            "date": str(r.get("date")),
+                            "days_until": (datetime.strptime(str(r.get("date")), "%Y%m%d").date() - now.date()).days if len(str(r.get("date"))) == 8 else None,
+                        }
+                        for r in upcoming_races
+                    ]
+                }
+            else:
+                data["next_race"] = {
+                    "has_race": False,
+                    "name": None,
+                    "date": None,
+                    "days_until": None,
+                    "distance": None,
+                    "races": []
+                }
 
         # 4. Fetch MCP metrics (Health, Recovery, Fitness, Sleep, HRV)
         mcp_metrics = self._sync_fetch_mcp_metrics()
