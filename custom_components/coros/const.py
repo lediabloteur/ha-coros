@@ -15,14 +15,6 @@ API_BASE_URL = "https://teameuapi.coros.com"
 MCP_BASE_URL = "https://mcpeu.coros.com"
 
 DEFAULT_MCP_CLIENT_ID = "6be9cd9d-4027-4d95-a559-7888bc302497"
-DEFAULT_MCP_REFRESH_TOKEN = "REDACTED_MCP_REFRESH_TOKEN"
-DEFAULT_MCP_ACCESS_TOKEN = "REDACTED_MCP_ACCESS_TOKEN"
-
-DEFAULT_MCP_TOKENS = {
-    "client_id": DEFAULT_MCP_CLIENT_ID,
-    "access_token": DEFAULT_MCP_ACCESS_TOKEN,
-    "refresh_token": DEFAULT_MCP_REFRESH_TOKEN,
-}
 
 # Attributes
 ATTR_PACE = "pace"

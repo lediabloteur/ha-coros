@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "COROS Training Hub",
-        "description": "Connect your COROS account to sync your workouts, health metrics and calendar.",
+        "description": "Connect your COROS account to sync your workouts, health metrics and calendar. Email/password syncs activities and schedules. The optional MCP token is required for EvoLab metrics (threshold pace, VO2max, recovery, race predictions, sleep).",
         "data": {
           "email": "COROS Email",
           "password": "COROS Password",
-          "mcp_token": "COROS MCP Token (optional)"
+          "mcp_token": "COROS MCP Token (optional, see tools/get_mcp_token.py)"
         }
       }
     }
@@ -16,12 +16,12 @@
     "step": {
       "init": {
         "title": "COROS Options",
-        "description": "COROS synchronization settings.",
+        "description": "COROS synchronization settings. To enable or update EvoLab and recovery metrics, generate your token with `python tools/get_mcp_token.py` and paste it below.",
         "data": {
           "scan_interval": "Update interval (minutes)",
-          "mcp_token": "COROS MCP Token (optional)"
+          "mcp_token": "COROS MCP Token (JSON or refresh_token)"
         }
       }
     }
   }
-}
+}

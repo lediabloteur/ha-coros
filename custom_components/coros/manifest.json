@@ -10,6 +10,6 @@
   "requirements": [
     "requests>=2.31.0"
   ],
-  "version": "1.4.2",
+  "version": "1.4.3",
   "iot_class": "cloud_polling"
 }

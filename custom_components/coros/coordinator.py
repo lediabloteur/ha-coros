@@ -23,8 +23,6 @@ from .const import (
     API_BASE_URL,
     MCP_BASE_URL,
     DEFAULT_MCP_CLIENT_ID,
-    DEFAULT_MCP_REFRESH_TOKEN,
-    DEFAULT_MCP_TOKENS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -189,8 +187,8 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
         """Get path to persistent token cache file."""
         return self.hass.config.path(".coros_tokens.json")
 
-    def _load_mcp_tokens(self) -> dict:
-        """Load MCP tokens from memory, config entry, cache file, or defaults."""
+    def _load_mcp_tokens(self) -> dict | None:
+        """Load MCP tokens from memory, config entry, or local cache."""
         if self._mcp_tokens:
             return self._mcp_tokens
 
@@ -200,16 +198,19 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             if isinstance(configured_token, dict):
                 self._mcp_tokens = configured_token
                 return self._mcp_tokens
-            if isinstance(configured_token, str):
+            if isinstance(configured_token, str) and configured_token.strip():
                 try:
-                    self._mcp_tokens = json.loads(configured_token)
-                    return self._mcp_tokens
+                    parsed = json.loads(configured_token)
+                    if isinstance(parsed, dict):
+                        self._mcp_tokens = parsed
+                        return self._mcp_tokens
                 except Exception:
-                    self._mcp_tokens = {
-                        "refresh_token": configured_token,
-                        "client_id": DEFAULT_MCP_CLIENT_ID
-                    }
-                    return self._mcp_tokens
+                    pass
+                self._mcp_tokens = {
+                    "refresh_token": configured_token.strip(),
+                    "client_id": DEFAULT_MCP_CLIENT_ID
+                }
+                return self._mcp_tokens
 
         # 2. Local token file in HA config directory
         token_path = self._get_token_file_path()
@@ -217,17 +218,18 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 with open(token_path, "r", encoding="utf-8") as f:
                     tok = json.load(f)
-                    if tok and isinstance(tok, dict):
-                        if not tok.get("access_token") and DEFAULT_MCP_TOKENS.get("access_token"):
-                            tok["access_token"] = DEFAULT_MCP_TOKENS["access_token"]
+                    if tok and isinstance(tok, dict) and (tok.get("access_token") or tok.get("refresh_token")):
                         self._mcp_tokens = tok
                         return self._mcp_tokens
             except Exception as err:
                 _LOGGER.debug("Could not read token file %s: %s", token_path, err)
 
-        # 3. Fallback default tokens
-        self._mcp_tokens = dict(DEFAULT_MCP_TOKENS)
-        return self._mcp_tokens
+        return None
+
+    @property
+    def has_mcp_tokens(self) -> bool:
+        """Return True if MCP token is configured."""
+        return self._load_mcp_tokens() is not None
 
     def _save_mcp_tokens(self, tokens: dict) -> None:
         """Persist tokens to cache file."""
@@ -266,9 +268,18 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("Error refreshing COROS MCP token: %s", err)
         return tokens
 
-    def _get_mcp_session_headers(self, tokens: dict) -> dict | None:
+    def _get_mcp_session_headers(self, tokens: dict | None) -> dict | None:
         """Initialize MCP session and return authenticated headers."""
+        if not tokens:
+            return None
         access_token = tokens.get("access_token")
+        if not access_token and tokens.get("refresh_token"):
+            tokens = self._refresh_mcp_token(tokens)
+            access_token = tokens.get("access_token")
+        if not access_token:
+            _LOGGER.debug("COROS MCP has no valid access_token.")
+            return None
+
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
@@ -281,17 +292,16 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "params": {
                 "protocolVersion": "2025-06-18",
                 "capabilities": {},
-                "clientInfo": {"name": "HomeAssistant", "version": "1.2.0"}
+                "clientInfo": {"name": "HomeAssistant", "version": "1.4.3"}
             }
         }
         try:
             res = requests.post(f"{MCP_BASE_URL}/mcp", headers=headers, json=init_payload, timeout=10)
-            if res.status_code == 401 or not access_token:
+            if res.status_code == 401:
                 tokens = self._refresh_mcp_token(tokens)
                 access_token = tokens.get("access_token")
-                if not access_token and DEFAULT_MCP_TOKENS.get("access_token"):
-                    access_token = DEFAULT_MCP_TOKENS["access_token"]
-                    tokens["access_token"] = access_token
+                if not access_token:
+                    return None
                 headers["Authorization"] = f"Bearer {access_token}"
                 res = requests.post(f"{MCP_BASE_URL}/mcp", headers=headers, json=init_payload, timeout=10)
 
@@ -344,8 +354,12 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             "health": {},
             "sleep": {}
         }
+        tokens = self._load_mcp_tokens()
+        if not tokens:
+            _LOGGER.debug("No COROS MCP token configured; EvoLab, recovery, and sleep metrics skipped.")
+            return mcp_data
+
         try:
-            tokens = self._load_mcp_tokens()
             headers = self._get_mcp_session_headers(tokens)
             if not headers:
                 return mcp_data

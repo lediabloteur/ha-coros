@@ -29,6 +29,29 @@ class CorosSensorEntityDescription(SensorEntityDescription):
     icon_fn: Callable[[dict[str, Any]], str | None] | None = None
     entity_id_override: str | None = None
 
+MCP_SENSOR_KEYS: frozenset[str] = frozenset({
+    "vo2max",
+    "running_level",
+    "threshold_pace",
+    "prediction_5k",
+    "prediction_10k",
+    "prediction_semi",
+    "prediction_marathon",
+    "training_load_status",
+    "short_term_load",
+    "long_term_load",
+    "load_ratio",
+    "recovery",
+    "recovery_time",
+    "fc_repos",
+    "vfc",
+    "sommeil_duree",
+    "sommeil_score",
+    "sommeil_profond",
+    "sommeil_leger",
+    "sommeil_rem",
+})
+
 def _format_activity_state(act: dict[str, Any] | None) -> str:
     """Format human-readable state for an activity."""
     if not act:
@@ -528,6 +551,15 @@ class CorosSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        if not super().available:
+            return False
+        if self.entity_description.key in MCP_SENSOR_KEYS:
+            return self.coordinator.has_mcp_tokens
+        return True
+
+    @property
     def native_value(self) -> Any:
         """Return native value of the sensor."""
         return self.entity_description.value_fn(self.coordinator.data)
@@ -535,6 +567,10 @@ class CorosSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra state attributes if configured."""
+        if self.entity_description.key in MCP_SENSOR_KEYS and not self.coordinator.has_mcp_tokens:
+            return {
+                "notice": "Token MCP COROS non configure. Requis pour les metriques EvoLab et sante. Utilisez tools/get_mcp_token.py pour l'obtenir."
+            }
         if self.entity_description.attrs_fn:
             return self.entity_description.attrs_fn(self.coordinator.data)
         return None

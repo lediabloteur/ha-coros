@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "COROS Training Hub",
-        "description": "Connectez votre compte COROS pour synchroniser vos entraînements et métriques.",
+        "description": "Connectez votre compte COROS pour synchroniser vos entraînements et métriques. Les identifiants (email/mot de passe) synchronisent vos activités et calendriers. Le jeton MCP (optionnel) est requis pour activer les métriques avancées EvoLab (allure seuil, VO2max, récupération, prédictions, sommeil).",
         "data": {
           "email": "Email COROS",
           "password": "Mot de passe COROS",
-          "mcp_token": "Token MCP COROS (optionnel)"
+          "mcp_token": "Jeton MCP COROS (optionnel, voir tools/get_mcp_token.py)"
         }
       }
     }
@@ -16,12 +16,12 @@
     "step": {
       "init": {
         "title": "Options COROS",
-        "description": "Paramètres de synchronisation COROS.",
+        "description": "Paramètres de synchronisation COROS. Pour activer ou mettre à jour les métriques EvoLab et de récupération, générez votre jeton avec `python tools/get_mcp_token.py` et collez-le ci-dessous.",
         "data": {
           "scan_interval": "Fréquence de rafraîchissement (minutes)",
-          "mcp_token": "Token MCP COROS (optionnel)"
+          "mcp_token": "Jeton MCP COROS (JSON ou refresh_token)"
         }
       }
     }
   }
-}
+}

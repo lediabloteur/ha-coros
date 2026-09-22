@@ -96,7 +96,22 @@ A comprehensive Home Assistant integration for **COROS** watches and Training Hu
 3. Add the URL of this repository, select category **Integration**, and click **Add**.
 4. Click **Download** and restart Home Assistant.
 5. Go to **Settings** > **Devices & Services** > **Add Integration** > Search for **COROS**.
-6. Enter your COROS credentials.
+6. Enter your COROS credentials (`email` and `password`).
+
+### 🔑 Activating EvoLab & Health Metrics (Optional)
+
+- **Standard credentials (`email` + `password`)**: Natively synchronizes all your activities, route maps, monthly & weekly realized volumes, scheduled workouts, and next race detection.
+- **EvoLab & Health Metrics** (Allure seuil, VO2max, Récupération, Prédictions, Sommeil, VFC) :
+  COROS provides these advanced metrics through its official OAuth MCP server. To enable them on your personal account:
+  1. Run the zero-dependency helper script:
+     ```bash
+     python tools/get_mcp_token.py
+     ```
+  2. Log in securely to your COROS account in the browser window that opens.
+  3. Copy the generated token string.
+  4. In Home Assistant, go to **Paramètres > Appareils et services > COROS > Configurer (Options)**, paste the token into **Jeton MCP COROS**, and submit!
+
+*(If you don't configure an MCP token, the EvoLab sensors will simply remain unavailable without displaying inaccurate foreign data).*
 
 ---
 
