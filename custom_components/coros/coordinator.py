@@ -28,7 +28,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 def md5(s: str) -> str:
-    return hashlib.md5(s.encode("utf-8")).hexdigest()
+    # COROS API requires MD5 hash of password for authentication
+    return hashlib.md5(s.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 def clean_text(txt: str) -> str:
     """Strip bounding quotes and unescape newline/tab sequences."""

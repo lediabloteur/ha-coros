@@ -6,10 +6,10 @@
   ],
   "config_flow": true,
   "documentation": "https://github.com/lediabloteur/ha-coros",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/lediabloteur/ha-coros/issues",
   "requirements": [
     "requests>=2.31.0"
   ],
-  "version": "1.4.3",
-  "iot_class": "cloud_polling"
+  "version": "1.4.3"
 }
