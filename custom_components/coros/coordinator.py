@@ -52,6 +52,8 @@ def compute_pace(time_str: str | None, dist_km: float) -> str:
     else:
         return ""
     pace_sec = int(round(sec / dist_km))
+    return f"{pace_sec // 60}:{pace_sec % 60:02d} /km"
+
 SPORT_MAP = {
     100: ("Course à pied", "run", "mdi:run"),
     101: ("Tapis de course", "run", "mdi:run-fast"),
