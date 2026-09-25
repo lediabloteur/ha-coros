@@ -37,23 +37,30 @@ class CorosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        return CorosOptionsFlowHandler(config_entry)
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Get the options flow for this handler."""
+        return CorosOptionsFlowHandler()
 
 class CorosOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options."""
-
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-        current_mcp = self.config_entry.options.get(CONF_MCP_TOKEN, "")
+        current_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        )
+        current_mcp = self.config_entry.options.get(
+            CONF_MCP_TOKEN,
+            self.config_entry.data.get(CONF_MCP_TOKEN, ""),
+        )
         schema = vol.Schema({
             vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): cv.positive_int,
             vol.Optional(CONF_MCP_TOKEN, default=current_mcp): str,
         })
         return self.async_show_form(step_id="init", data_schema=schema)
+

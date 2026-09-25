@@ -440,7 +440,7 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
             if hrv_res and hrv_res.get("content"):
                 txt = clean_text(hrv_res["content"][0].get("text", ""))
                 m_hrv = re.findall(
-                    r'(\d{4}-\d{2}-\d{2}):\s*\n\s*HRV Avg:\s*(\d+)\s*ms\s*—\s*([^\n]+)\s*\n\s*Normal Range:\s*([^\n]+)\s*\n\s*Baseline:\s*([^\n]+)',
+                    r'(\d{4}-\d{2}-\d{2}):\s*\n\s*HRV Avg:\s*(\d+)\s*ms\s*[-—–\S]?\s*([^\n]+)\s*\n\s*Normal Range:\s*([^\n]+)\s*\n\s*Baseline:\s*([^\n]+)',
                     txt
                 )
                 if m_hrv:
@@ -450,12 +450,27 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
                     mcp_data["health"]["hrv_range"] = latest[3].strip()
                     mcp_data["health"]["hrv_baseline"] = latest[4].strip()
 
-            # 6. Sleep Data
-            sleep_res = self._call_mcp_tool(headers, "querySleepData", {"days": 7})
+            # 6. Sleep Data & Overview
+            sleep_res = self._call_mcp_tool(headers, "querySleepOverview", {"days": 7})
+            if not sleep_res or not sleep_res.get("content"):
+                sleep_res = self._call_mcp_tool(headers, "querySleepData", {"days": 7})
+
             if sleep_res and sleep_res.get("content"):
                 txt = clean_text(sleep_res["content"][0].get("text", ""))
                 sleep_blocks = re.findall(
-                    r'(\d{4}-\d{2}-\d{2})\s*\nSleep Score:\s*(\d+)\s*\nMain Sleep:\s*([^\n]+)\s*\nDeep Sleep Ratio:\s*(\d+)%\s*\nLight Sleep Ratio:\s*(\d+)%\s*\nREM Ratio:\s*(\d+)%\s*\nAwake Ratio:\s*(\d+)%\s*\nAwake Time:\s*([^\n]+)\s*\nAwake Count[^:]*:\s*(\d+)\s*\nMain Sleep Window:\s*([^\n]+)',
+                    r'(?m)^(\d{4}-\d{2}-\d{2})\s*\n'
+                    r'Sleep Score:\s*(\d+)\s*\n'
+                    r'(?:Daily Sleep:[^\n]*\n)?'
+                    r'Main Sleep(?:\s*\([^\)]*\))?:\s*([^\n]+)\s*\n'
+                    r'(?:Main Sleep Period[^\n]*\n)?'
+                    r'(?:Sleep metrics scope[^\n]*\n)?'
+                    r'Deep Sleep Ratio:\s*(\d+)%\s*\n'
+                    r'Light Sleep Ratio:\s*(\d+)%\s*\n'
+                    r'REM Ratio:\s*(\d+)%\s*\n'
+                    r'Awake Ratio:\s*(\d+)%\s*\n'
+                    r'Awake Time:\s*([^\n]+)\s*\n'
+                    r'Awake Count[^:]*:\s*(\d+)\s*\n'
+                    r'Main Sleep Window:\s*([^\n]+)',
                     txt
                 )
                 if sleep_blocks:
@@ -795,7 +810,15 @@ class CorosDataUpdateCoordinator(DataUpdateCoordinator):
 
         # 4. Fetch MCP metrics (Health, Recovery, Fitness, Sleep, HRV)
         mcp_metrics = self._sync_fetch_mcp_metrics()
-        data.update(mcp_metrics)
+        for k in ["fitness", "training_status", "recovery", "health", "sleep"]:
+            val = mcp_metrics.get(k)
+            if val:
+                data[k] = val
+            elif self.data and self.data.get(k):
+                data[k] = self.data[k]
+            else:
+                data[k] = val or {}
+
 
         return data
 
